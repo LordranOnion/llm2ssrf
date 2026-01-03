@@ -1,0 +1,12 @@
+flask
+requests
+jsonfy
+langchain
+langchain-community
+<<<<<<< HEAD
+ollama
+openai
+anthropic
+=======
+ollama
+>>>>>>> 273564618b6e2c8948921c527b4af301374b3f5b

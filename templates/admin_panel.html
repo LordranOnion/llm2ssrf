@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Admin Panel</title>
+    <style>
+        body { font-family: Arial; background: #222; color: #fff; }
+        .container { width: 800px; margin: 40px auto; background: #292929; padding: 32px; border-radius: 14px;}
+        h2 { color: #FF5722; }
+        .section { margin-bottom: 36px;}
+        table { width: 100%; border-collapse: collapse;}
+        th, td { border-bottom: 1px solid #444; padding: 8px; }
+        th { background: #333; }
+        button { padding: 6px 12px; background: #ff5722; color: #fff; border: none; border-radius: 6px;}
+        input, select { margin-right: 6px; padding: 4px; border-radius: 5px; border: none;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Admin Panel</h2>
+    <div class="section">
+        <h3>Users</h3>
+        <table id="users-table">
+            <thead>
+                <tr><th>Username</th><th>Type</th><th>Remove</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <input type="text" id="add-username" placeholder="New username">
+        <select id="add-type">
+            <option value="0">User</option>
+            <option value="1">Admin</option>
+        </select>
+        <button onclick="addUser()">Add User</button>
+    </div>
+    <div class="section">
+        <h3>Events</h3>
+        <table id="events-table">
+            <thead>
+                <tr><th>Order</th><th>Name</th><th>Date</th><th>Venue</th><th>Price</th><th>Remove</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <input type="text" id="add-name" placeholder="Name">
+        <input type="date" id="add-date">
+        <input type="text" id="add-venue" placeholder="Venue">
+        <input type="number" id="add-price" placeholder="Price" min="1">
+        <button onclick="addEvent()">Add Event</button>
+    </div>
+</div>
+<script>
+    function fetchUsers() {
+        fetch('/admin/users').then(r => r.json()).then(users => {
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${u.username}</td>
+                    <td>${u.is_admin ? "Admin" : "User"}</td>
+                    <td>${u.is_admin ? '' : `<button onclick="deleteUser(${u.id})">Remove</button>`}</td> `;
+                tbody.appendChild(tr);
+            });
+        });
+    }
+    function addUser() {
+        const username = document.getElementById('add-username').value.trim();
+        const is_admin = document.getElementById('add-type').value === "1";
+        if(!username) return alert("Username required");
+        fetch('/admin/users/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, is_admin})
+        }).then(r => r.json()).then(res => {
+            if(res.error) alert(res.error);
+            fetchUsers();
+            document.getElementById('add-username').value = '';
+        });
+    }
+    function deleteUser(username) {
+        fetch('/admin/users/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username })
+        }).then(_ => fetchUsers());
+    }
+
+    function fetchEvents() {
+    fetch('/admin/events')
+        .then(r => r.json())
+        .then(events => {
+            const tbody = document.querySelector('#events-table tbody');
+            tbody.innerHTML = '';
+
+            events.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>
+                    <button onclick="moveEvent(${e.id}, 'up')">↑</button>
+                    <button onclick="moveEvent(${e.id}, 'down')">↓</button>
+                </td>
+                    <td>${e.name}</td>
+                    <td>${e.date}</td>
+                    <td>${e.venue}</td>
+                    <td>${e.price}</td>
+                    <td><button onclick='deleteEvent(${JSON.stringify(e.name)})'>Remove</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+}
+
+    function addEvent() {
+        const name = document.getElementById('add-name').value.trim();
+        const date = document.getElementById('add-date').value;
+        const venue = document.getElementById('add-venue').value.trim();
+        const price = parseFloat(document.getElementById('add-price').value);
+        if(!name || !date || !venue || isNaN(price)) return alert("All fields required");
+        fetch('/admin/events/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, date, venue, price})
+        }).then(_ => {
+            fetchEvents();
+            document.getElementById('add-name').value = '';
+            document.getElementById('add-date').value = '';
+            document.getElementById('add-venue').value = '';
+            document.getElementById('add-price').value = '';
+        });
+    }
+    function deleteEvent(name) {
+    fetch('/admin/events/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name: name })
+    }).then(_ => fetchEvents());
+}
+
+function moveEvent(eventId, direction) {
+  fetch('/admin/events/reorder', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ event_id: eventId, direction })
+  }).then(r => r.json()).then(_ => fetchEvents());
+}
+
+    fetchUsers(); fetchEvents();
+</script>
+</body>
+</html>

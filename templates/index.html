@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Athens Rock & Metal Events</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #181818; color: #f0f0f0; }
+        .container { width: 420px; margin: 40px auto; background: #232323; border-radius: 14px; padding: 30px; box-shadow: 0 6px 24px #0009; }
+        h2 { text-align: center; color: #FF5722;}
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 8px; padding: 6px; border-bottom: 1px solid #333; }
+        label, select, button { margin-top: 20px; display: block; width: 100%; }
+        button { background: #FF5722; color: #fff; padding: 10px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .result { margin-top: 18px; font-size: 1.1em; color: #03e9f4; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Rock & Metal Events in Athens</h2>
+    <ul id="events-list">
+        <!-- Events will be loaded here -->
+    </ul>
+    <div>
+        <label for="event-select">Pick your event:</label>
+        <select id="event-select"></select>
+        <button id="bring-btn">Bring it on!</button>
+        <div class="result" id="price-result"></div>
+    </div>
+</div>
+<script>
+    let events = [];
+    fetch('/events').then(res => res.json()).then(data => {
+        events = data;
+        // Show all events
+        const list = document.getElementById('events-list');
+        data.forEach(ev => {
+            let li = document.createElement('li');
+            li.textContent = `${ev.name} - ${ev.date} @ ${ev.venue}`;
+            list.appendChild(li);
+        });
+        // Fill select
+        const select = document.getElementById('event-select');
+        data.forEach(ev => {
+            let option = document.createElement('option');
+            option.value = ev.id;
+            option.textContent = `${ev.name} (${ev.date})`;
+            select.appendChild(option);
+        });
+    });
+
+    document.getElementById('bring-btn').onclick = function() {
+        const eventId = document.getElementById('event-select').value;
+        fetch('/price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            let display;
+        if (data.price) {
+            display = `Ticket price: €${data.price}`;
+        } else if (data.content) {
+            // Try to pretty-print if it's JSON
+            try {
+                const json = JSON.parse(data.content);
+                display = `<pre>${JSON.stringify(json, null, 2)}</pre>`;
+            } catch {
+                display = data.content; // Not JSON, just show as-is
+            }
+        } else {
+            display = 'Event not found!';
+        }
+        // Show as HTML (so <pre> works)
+        document.getElementById('price-result').innerHTML = display;
+        });
+    }
+</script>
+</body>
+</html>
