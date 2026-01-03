@@ -7,4 +7,4 @@
    - [pip](https://pip.pypa.io/en/stable/installation/)
    
 3. **Install the dependencies**
-   pip install flask requests
+   - pip install -r requirements.txt
